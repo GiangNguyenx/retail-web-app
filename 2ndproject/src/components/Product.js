@@ -46,6 +46,7 @@ const Product = () => {
                         )}
                     </div>
                 </div>
+                {/* Product review */}
                 <div className="w-3/5 flex flex-col justify-center gap-12">
                     <div>
                         <h2 className="text-4xl font-semibold">{details.title}</h2>
