@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import { productApi } from "../api/Api";
-
+import { productApi, categoryApi } from "../api/apiService";
 export const WarehouseManagement = () => {
-  // State for managing products
+  const navigate = useNavigate();
+  const userInfo = useSelector((store) => store.bazar.userInfo);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [formMode, setFormMode] = useState("add"); // "add" or "edit"
+  const [formMode, setFormMode] = useState("add");
   const [currentProduct, setCurrentProduct] = useState(null);
   const [isShowForm, setIsShowForm] = useState(false);
-
+  const [categories, setCategories] = useState([]);
   // Form state
   const [formData, setFormData] = useState({
     title: "",
@@ -24,24 +25,20 @@ export const WarehouseManagement = () => {
     isNew: false
   });
 
+  // Check if user is admin
+  useEffect(() => {
+    if (!userInfo || userInfo.role !== 'admin') {
+      toast.error('Access denied. Admin privileges required.');
+      navigate('/');
+    }
+  }, [userInfo, navigate]);
+
   // Function to fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      // Try to get products from our API first
-      try {
-        const data = await productApi.getProducts();
-        setProducts(data);
-      } catch (error) {
-        // Fallback to fake store API if our server is not available
-        const response = await axios.get("https://fakestoreapiserver.reactbd.com/products");
-        // Adding quantity field to each product
-        const productsWithQuantity = response.data.map(product => ({
-          ...product,
-          quantity: Math.floor(Math.random() * 50) + 5 // Mock quantity for demonstration
-        }));
-        setProducts(productsWithQuantity);
-      }
+      const data = await productApi.getProducts();
+      setProducts(data);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -100,44 +97,21 @@ export const WarehouseManagement = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       if (formMode === "add") {
-        // Create new product
-        try {
-          // Try to use our API
-          const newProduct = await productApi.createProduct(formData);
-          setProducts([...products, newProduct]);
-        } catch (error) {
-          // Fallback if our server is not available
-          const newProduct = {
-            ...formData,
-            _id: Date.now().toString(), // Mock ID for demo
-          };
-          setProducts([...products, newProduct]);
-        }
+        const newProduct = await productApi.createProduct(formData);
+        setProducts([...products, newProduct]);
         toast.success("Product added successfully!");
       } else {
-        // Update existing product
-        try {
-          // Try to use our API
-          const updatedProduct = await productApi.updateProduct(currentProduct._id, formData);
-          const updatedProducts = products.map(product => 
-            product._id === currentProduct._id ? updatedProduct : product
-          );
-          setProducts(updatedProducts);
-        } catch (error) {
-          // Fallback if our server is not available
-          const updatedProducts = products.map(product => 
-            product._id === currentProduct._id 
-              ? { ...product, ...formData } 
-              : product
-          );
-          setProducts(updatedProducts);
-        }
+        const updatedProduct = await productApi.updateProduct(currentProduct.id, formData);
+        const updatedProducts = products.map(product =>
+          product.id === currentProduct.id ? updatedProduct : product
+        );
+        setProducts(updatedProducts);
         toast.success("Product updated successfully!");
       }
-      
+
       // Reset form
       setIsShowForm(false);
       setFormData({
@@ -152,7 +126,7 @@ export const WarehouseManagement = () => {
       });
     } catch (error) {
       console.error("Error saving product:", error);
-      toast.error(formMode === "add" ? "Failed to add product" : "Failed to update product");
+      toast.error(error.response?.data?.message || "Failed to save product");
     }
   };
 
@@ -160,36 +134,55 @@ export const WarehouseManagement = () => {
   const handleDeleteProduct = async (productId) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       try {
-        try {
-          // Try to use our API
-          await productApi.deleteProduct(productId);
-        } catch (error) {
-          // Fallback if our server is not available
-          console.log("Server not available, simulating deletion locally");
-        }
-        // Update UI
-        const updatedProducts = products.filter(product => product._id !== productId);
+        await productApi.deleteProduct(productId);
+        const updatedProducts = products.filter(product => product.id !== productId);
         setProducts(updatedProducts);
         toast.success("Product deleted successfully!");
       } catch (error) {
         console.error("Error deleting product:", error);
-        toast.error("Failed to delete product");
+        toast.error(error.response?.data?.message || "Failed to delete product");
       }
     }
   };
+
+  useEffect(() => {
+    const fetchCategoriesForForm = async () => {
+      try {
+        const response = await categoryApi.getCategories();
+        // Giả sử response là mảng các categories theo API docs 3.1
+        // Hoặc nếu response có dạng { success: true, data: [...] } thì lấy response.data
+        if (Array.isArray(response)) {
+          setCategories(response);
+        } else if (response && response.data && Array.isArray(response.data)) {
+          setCategories(response.data);
+        } else if (response && response.success && Array.isArray(response.data)) {
+          setCategories(response.data);
+        }
+        else {
+          setCategories(response || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories for form", error);
+        toast.error("Could not load categories for product form.");
+      }
+    };
+    fetchCategoriesForForm();
+    // Thêm fetchProducts vào đây nếu nó chưa được gọi trong useEffect riêng
+    // fetchProducts(); // Đã có useEffect riêng cho fetchProducts
+  }, []); // Dependency array rỗng để chỉ chạy 1 lần
 
   return (
     <>
       <section className="bg-white py-10 lg:py-[80px] overflow-hidden relative z-10 p-5">
         <div className="container mx-auto">
-          <div className="mb-10 flex flex-wrap items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between mb-10">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Warehouse Management</h1>
               <p className="mt-2 text-gray-600">Manage your products inventory</p>
             </div>
-            <button 
+            <button
               onClick={handleAddProduct}
-              className="bg-blue-800 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition"
+              className="px-6 py-2 text-white transition bg-blue-800 rounded-md hover:bg-blue-700"
             >
               Add New Product
             </button>
@@ -197,12 +190,12 @@ export const WarehouseManagement = () => {
 
           {/* Product Form (Add/Edit) */}
           {isShowForm && (
-            <div className="mb-10 p-6 bg-white rounded-lg shadow-lg">
-              <h2 className="text-xl font-semibold mb-4">{formMode === "add" ? "Add New Product" : "Edit Product"}</h2>
+            <div className="p-6 mb-10 bg-white rounded-lg shadow-lg">
+              <h2 className="mb-4 text-xl font-semibold">{formMode === "add" ? "Add New Product" : "Edit Product"}</h2>
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div>
-                    <label className="block text-gray-700 mb-2">Product Name</label>
+                    <label className="block mb-2 text-gray-700">Product Name</label>
                     <WarehouseInputBox
                       type="text"
                       name="title"
@@ -213,23 +206,24 @@ export const WarehouseManagement = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-700 mb-2">Category</label>
+                    <label className="block mb-2 text-gray-700">Category</label>
                     <select
-                      name="category"
-                      value={formData.category}
+                      name="categoryId"
+                      value={formData.categoryId || formData.category}
                       onChange={handleInputChange}
                       className="border w-full rounded border-gray-300 py-3 px-[14px] text-base text-body-color outline-none focus:border-primary focus-visible:shadow-none"
                       required
                     >
                       <option value="">Select Category</option>
-                      <option value="men's clothing">Men's Clothing</option>
-                      <option value="women's clothing">Women's Clothing</option>
-                      <option value="jewelery">Jewelry</option>
-                      <option value="electronics">Electronics</option>
+                      {categories.map(cat => (
+                        <option key={cat.id || cat._id} value={cat.id || cat._id}> {/* Gửi ID của category */}
+                          {cat.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-gray-700 mb-2">Current Price ($)</label>
+                    <label className="block mb-2 text-gray-700">Current Price ($)</label>
                     <WarehouseInputBox
                       type="number"
                       name="price"
@@ -240,7 +234,7 @@ export const WarehouseManagement = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-700 mb-2">Old Price ($)</label>
+                    <label className="block mb-2 text-gray-700">Old Price ($)</label>
                     <WarehouseInputBox
                       type="number"
                       name="oldPrice"
@@ -250,7 +244,7 @@ export const WarehouseManagement = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-700 mb-2">Stock Quantity</label>
+                    <label className="block mb-2 text-gray-700">Stock Quantity</label>
                     <WarehouseInputBox
                       type="number"
                       name="quantity"
@@ -261,7 +255,7 @@ export const WarehouseManagement = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-700 mb-2">Image URL</label>
+                    <label className="block mb-2 text-gray-700">Image URL</label>
                     <WarehouseInputBox
                       type="text"
                       name="image"
@@ -272,7 +266,7 @@ export const WarehouseManagement = () => {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-gray-700 mb-2">Product Description</label>
+                    <label className="block mb-2 text-gray-700">Product Description</label>
                     <WarehouseTextArea
                       row="4"
                       name="description"
@@ -289,24 +283,24 @@ export const WarehouseManagement = () => {
                         name="isNew"
                         checked={formData.isNew}
                         onChange={handleInputChange}
-                        className="form-checkbox h-5 w-5 text-blue-600"
+                        className="w-5 h-5 text-blue-600 form-checkbox"
                       />
                       <span className="ml-2 text-gray-700">Mark as New (Sale)</span>
                     </label>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-4 mt-6">
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-blue-800 text-white rounded-md hover:bg-blue-700 transition"
+                    className="px-6 py-2 text-white transition bg-blue-800 rounded-md hover:bg-blue-700"
                   >
                     {formMode === "add" ? "Add Product" : "Update Product"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsShowForm(false)}
-                    className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition"
+                    className="px-6 py-2 text-gray-800 transition bg-gray-200 rounded-md hover:bg-gray-300"
                   >
                     Cancel
                   </button>
@@ -318,53 +312,53 @@ export const WarehouseManagement = () => {
           {/* Products List */}
           <div className="overflow-x-auto">
             {loading ? (
-              <div className="text-center py-10">
+              <div className="py-10 text-center">
                 <p className="text-gray-600">Loading products...</p>
               </div>
             ) : (
               <table className="min-w-full bg-white border border-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Image</th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Product Name</th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Category</th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Price</th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Stock</th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
+                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b">Image</th>
+                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b">Product Name</th>
+                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b">Category</th>
+                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b">Price</th>
+                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b">Stock</th>
+                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {products.map((product) => (
-                    <tr key={product._id} className="hover:bg-gray-50">
-                      <td className="py-4 px-4 whitespace-nowrap">
-                        <img src={product.image} alt={product.title} className="h-12 w-12 object-cover" />
+                    <tr key={product.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <img src={product.image} alt={product.title} className="object-cover w-12 h-12" />
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-4">
                         <div className="text-sm font-medium text-gray-900">{product.title}</div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="text-sm text-gray-500">{product.category}</div>
+                      <td className="px-4 py-4">
+                        <div className="text-sm text-gray-500">{typeof product.category === 'object' && product.category !== null ? product.category.name : product.category}</div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-4">
                         <div className="text-sm text-gray-900">${product.price}</div>
                         {product.oldPrice && <div className="text-xs text-gray-500 line-through">${product.oldPrice}</div>}
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-4">
                         <div className="text-sm text-gray-900">{product.quantity || 'N/A'}</div>
                       </td>
-                      <td className="py-4 px-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex space-x-3">
                           <button
                             onClick={() => handleEditProduct(product)}
                             className="text-blue-600 hover:text-blue-900"
                           >
-                            <FaEdit className="h-5 w-5" />
+                            <FaEdit className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => handleDeleteProduct(product._id)}
+                            onClick={() => handleDeleteProduct(product.id)}
                             className="text-red-600 hover:text-red-900"
                           >
-                            <FaTrash className="h-5 w-5" />
+                            <FaTrash className="w-5 h-5" />
                           </button>
                         </div>
                       </td>

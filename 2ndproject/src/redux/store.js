@@ -1,7 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import bazarReducer from "./bazarSlice";
 import { productSearchReducer } from "./reducers/productSearchReducer";
-
 import {
   persistStore,
   persistReducer,
@@ -14,27 +13,26 @@ import {
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 
-// const persistConfig = {
-//   key: 'root',
-//   version: 1,
-//   storage,
-// }
+const persistConfig = {
+  key: 'root',
+  version: 1,
+  storage,
+  whitelist: ['bazar'], // only bazar will be persisted
+};
 
-//const persistedReducer = persistReducer(persistConfig, bazarReducer)
+const persistedReducer = persistReducer(persistConfig, bazarReducer);
 
 export const store = configureStore({
-  // reducer: {bazar : persistedReducer},
-  // middleware: (getDefaultMiddleware) =>
-  //   getDefaultMiddleware({
-  //     serializableCheck: {
-  //       ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-  //     },
-  //   }),
-
   reducer: {
-    bazar: bazarReducer,
+    bazar: persistedReducer,
     productSearch: productSearchReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
+    }),
 });
 
-//export let persistor = persistStore(store)
+export const persistor = persistStore(store);

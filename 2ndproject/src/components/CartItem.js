@@ -19,7 +19,7 @@ const CartItem = () => {
   return (
     <div className="w-2/3 pr-10">
       <div className="w-full">
-        <h2 className="font-titleFont text-2xl">shopping cart</h2>
+        <h2 className="text-2xl font-titleFont">shopping cart</h2>
       </div>
       <div>
         {productData.map((item) => (
@@ -32,10 +32,10 @@ const CartItem = () => {
                   dispatch(deleteItem(item._id)) &
                   toast.error(`${item.title} is removed`)
                 }
-                className="text-xl text-gray-600 hover:text-red-600 cursor-pointer duration-300"
+                className="text-xl text-gray-600 duration-300 cursor-pointer hover:text-red-600"
               />
               <img
-                className="w-32 h-32 object-cover"
+                className="object-cover w-32 h-32"
                 src={item.image}
                 alt="productImg"
               />
@@ -43,7 +43,7 @@ const CartItem = () => {
             <h2 className="w-52">{item.title}</h2>
             <p className="w-10">${item.price}</p>
 
-            <div className="w-52 flex items-center justify-between text-gray-500 gap-4 border p-3">
+            <div className="flex items-center justify-between gap-4 p-3 text-gray-500 border w-52">
               <p className="text-sm">Quantity</p>
               <div className="flex items-center gap-4 text-sm font-semibold">
                 <span
@@ -59,9 +59,7 @@ const CartItem = () => {
                       })
                     )
                   }
-                  className="border h-5 font-normal text-lg flex items-center
-                             justify-center px-2 hover:bg-gray-700 hover:text-white cursor-pointer
-                             duration-300 active:bg-black">
+                  className="flex items-center justify-center h-5 px-2 text-lg font-normal duration-300 border cursor-pointer hover:bg-gray-700 hover:text-white active:bg-black">
                   -
                 </span>
                 {item.quantity}
@@ -79,9 +77,7 @@ const CartItem = () => {
                       })
                     )
                   }
-                  className="border h-5 font-normal text-lg flex items-center
-                             justify-center px-2 hover:bg-gray-700 hover:text-white cursor-pointer
-                             duration-300 active:bg-black">
+                  className="flex items-center justify-center h-5 px-2 text-lg font-normal duration-300 border cursor-pointer hover:bg-gray-700 hover:text-white active:bg-black">
                   +
                 </span>
               </div>
@@ -95,11 +91,11 @@ const CartItem = () => {
         onClick={() =>
           dispatch(resetCart()) & toast.error("Your Cart is Empty!")
         }
-        className="bg-red-500 text-white mt-8 ml-7 py-1 px-6 hover:bg-red-800 duration-300">
+        className="px-6 py-1 mt-8 text-white duration-300 bg-red-500 ml-7 hover:bg-red-800">
         Reset Cart
       </button>
       <Link to="/">
-        <button className="mt-8 ml-7 flex items-center gap-1 text-gray-400 hover:text-black duration-300">
+        <button className="flex items-center gap-1 mt-8 text-gray-400 duration-300 ml-7 hover:text-black">
           <span>
             <HiOutlineArrowLeft />
           </span>

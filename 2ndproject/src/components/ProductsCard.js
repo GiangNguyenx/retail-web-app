@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BsArrowRight, BsHeart, BsHeartFill } from "react-icons/bs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../redux/bazarSlice";
 import { ToastContainer, toast } from "react-toastify";
@@ -26,17 +26,21 @@ const ProductsCard = ({ product }) => {
   };
 
   const handleAddToCart = () => {
-    dispatch(
-      addToCart({
-        _id: product._id,
-        title: product.title,
-        image: product.image,
+    try {
+      const cartItem = {
+        id: product._id || product.id,
+        name: product.name || product.title,
         price: product.price,
-        quantity: 1,
-        description: product.description,
-      })
-    );
-    toast.success(`${product.title} added to cart`);
+        image: product.image,
+        quantity: 1
+      };
+
+      dispatch(addToCart(cartItem));
+      toast.success('Product added to cart successfully');
+    } catch (err) {
+      toast.error('Failed to add product to cart');
+      console.error(err);
+    }
   };
 
   const toggleWishlist = (e) => {
@@ -63,7 +67,7 @@ const ProductsCard = ({ product }) => {
         <img
           className="w-full h-full object-cover group-hover:scale-110 duration-500"
           src={product.image}
-          alt={product.title}
+          alt={product.name || product.title}
         />
         {/* Wishlist Button */}
         <button
@@ -90,7 +94,9 @@ const ProductsCard = ({ product }) => {
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <h2 className="font-titleFont text-lg font-bold text-gray-800">
-            {product.title}
+            <Link to={`/product/${product._id || product.id}`}>
+              {product.name || product.title}
+            </Link>
           </h2>
           <div className="flex items-center gap-2">
             {product.oldPrice && (
@@ -99,7 +105,7 @@ const ProductsCard = ({ product }) => {
               </p>
             )}
             <p className="text-lg font-bold text-orange-500">
-              ${product.price}
+              ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
             </p>
           </div>
         </div>
@@ -109,17 +115,15 @@ const ProductsCard = ({ product }) => {
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          className={`w-full py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 ${
-            isHovered
+          className={`w-full py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 ${isHovered
               ? "bg-orange-500 text-white"
               : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-          }`}
+            }`}
         >
           Add to Cart
           <BsArrowRight
-            className={`transition-transform duration-300 ${
-              isHovered ? "translate-x-1" : ""
-            }`}
+            className={`transition-transform duration-300 ${isHovered ? "translate-x-1" : ""
+              }`}
           />
         </button>
       </div>

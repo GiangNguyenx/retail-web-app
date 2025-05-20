@@ -10,20 +10,22 @@ export const bazarSlice = createSlice({
   initialState,
   reducers: {
     addToCart: (state, action) => {
-      console.log(typeof state.productData,"state")
-      const item = state.productData.length>0 && state.productData.find((item) => item._id === action.payload._id);
+      const newItem = {
+        _id: action.payload.id,
+        name: action.payload.name,
+        price: action.payload.price,
+        image: action.payload.image,
+        quantity: action.payload.quantity || 1
+      };
 
-      if (item) {
-        item.quantity += action.payload.quantity;
+      const existingItem = state.productData.find(item => item._id === newItem._id);
+
+      if (existingItem) {
+        existingItem.quantity += newItem.quantity;
       } else {
-        console.log(state.productData,"state.productData")
-        state.productData.push(action.payload);
+        state.productData.push(newItem);
       }
-      
-      //state.productData = action.payload;
     },
-
-    
 
     deleteItem: (state, action) => {
       state.productData = state.productData.filter(
@@ -37,34 +39,44 @@ export const bazarSlice = createSlice({
 
     incrementQuantity: (state, action) => {
       const item = state.productData.find(
-        (item) => item._id === action.payload._id
+        (item) => item._id === action.payload
       );
 
       if (item) {
-        item.quantity++;
+        item.quantity += 1;
       }
     },
 
     decrementQuantity: (state, action) => {
       const item = state.productData.find(
-        (item) => item._id === action.payload._id
+        (item) => item._id === action.payload
       );
 
-      if (item.quantity === 1) {
-        item.quantity = 1;
-      } else {
-        item.quantity--;
+      if (item) {
+        if (item.quantity > 1) {
+          item.quantity -= 1;
+        }
       }
     },
 
-    addUser:(state,action)=>{
-      state.userInfo=action.payload;
+    addUser: (state, action) => {
+      state.userInfo = action.payload;
     },
-    removeUser:(state)=>{
-      state.userInfo=null
+
+    removeUser: (state) => {
+      state.userInfo = null;
     }
   },
 });
 
-export const { addToCart,deleteItem,resetCart ,incrementQuantity,decrementQuantity,addUser,removeUser} = bazarSlice.actions;
+export const {
+  addToCart,
+  deleteItem,
+  resetCart,
+  incrementQuantity,
+  decrementQuantity,
+  addUser,
+  removeUser
+} = bazarSlice.actions;
+
 export default bazarSlice.reducer;
