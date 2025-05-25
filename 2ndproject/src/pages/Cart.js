@@ -64,7 +64,9 @@ const Cart = () => {
     setPayNow(true); // Hiển thị nút StripeCheckout
   };
 
-
+  const formatShippingAddressToString = (details) => {
+    return `${details.street}, ${details.city}, ${details.postalCode}, ${details.country}, Phone: ${details.phone}`;
+  };
   const handleCheckout = () => { // Đổi tên hàm này để tránh nhầm lẫn
     if (!userInfo) {
       toast.error("Please sign in to Checkout");
@@ -85,13 +87,7 @@ const Cart = () => {
           quantity: item.quantity,
           price: item.price
         })),
-        shippingAddress: { // Sử dụng state shippingDetails
-          street: shippingDetails.street,
-          city: shippingDetails.city,
-          postalCode: shippingDetails.postalCode,
-          country: shippingDetails.country,
-          phone: shippingDetails.phone,
-        },
+        shippingAddress: formatShippingAddressToString(shippingDetails), // <--- Chuyển thành chuỗi,
         paymentMethod: "CreditCard", // Hoặc "Stripe"
       };
 
@@ -187,7 +183,7 @@ const Cart = () => {
               <p className="mb-2 text-sm text-gray-600">Review your order and pay with Stripe.</p>
               <StripeCheckout
                 // ... (các props khác của StripeCheckout) ...
-                stripeKey="YOUR_STRIPE_PUBLIC_KEY" // THAY BẰNG KEY PUBLIC CỦA BẠN
+                stripeKey="pk_test_51NwOx1SINEXC0VfamXku4eFDprQoJRxK4uxvLmvAegXrLhxjGQVprQU0Zx9ATFp4E62rsB9YHZWK1xWmMh6q8Yk800ZE5zSfJT" // THAY BẰNG KEY PUBLIC CỦA BẠN
                 name="Fast Fashion Online Shopping"
                 amount={totalAmt * 100}
                 label="Pay to FastFashion"
